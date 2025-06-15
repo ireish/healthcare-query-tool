@@ -1,0 +1,4 @@
+spacy>=3.0
+pandas
+python-dateutil
+requests
