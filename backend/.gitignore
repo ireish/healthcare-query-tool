@@ -4,6 +4,7 @@ venv/
 
 # Python
 __pycache__/
+nlp-service/__pycache__/
 .pytest_cache/
 .venv/
 
