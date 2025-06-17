@@ -31,7 +31,8 @@ class QueryRequest(BaseModel):
     query: str
 
 class QueryResponse(BaseModel):
-    fhir_query: str
+    condition_query: Optional[str] = None
+    patient_query: str
     success: bool
     error: Optional[str] = None
 
@@ -66,18 +67,20 @@ async def process_nlp_query(request: QueryRequest):
             )
         
         # Process the query using NLP service
-        # Returns the FHIR query string
-        fhir_query = nlp_service.process_query(request.query.strip())
+        # Returns a dictionary with condition and patient queries
+        query_result = nlp_service.process_query(request.query.strip())
         
-        if not fhir_query:
+        patient_query = query_result.get("patient_query")
+        if not patient_query:
             return QueryResponse(
-                fhir_query="No FHIR query generated",
+                patient_query="No FHIR patient query generated",
                 success=False,
-                error="Unable to generate FHIR query from the input"
+                error="Unable to generate FHIR patient query from the input"
             )
         
         return QueryResponse(
-            fhir_query=fhir_query,
+            condition_query=query_result.get("condition_query"),
+            patient_query=patient_query,
             success=True
         )
         
@@ -100,7 +103,7 @@ if __name__ == "__main__":
     print("")
     
     uvicorn.run(
-        app,
+        "main:app",
         host="0.0.0.0",
         port=8000,
         reload=True,

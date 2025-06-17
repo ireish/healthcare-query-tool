@@ -20,6 +20,13 @@ class MedicalEntityExtractor:
             "pneumonia": {"icd10": "J18", "snomed": "233604007", "display": "Pneumonia"},
             "heart disease": {"icd10": "I51", "snomed": "56265001", "display": "Heart disease"},
             "stroke": {"icd10": "I64", "snomed": "230690007", "display": "Stroke"},
+            "anxiety": {"icd10": "F41.9", "snomed": "48694002", "display": "Anxiety disorder"},
+            "depression": {"icd10": "F32.9", "snomed": "35489007", "display": "Depressive disorder"},
+            "migraine": {"icd10": "G43.9", "snomed": "37796009", "display": "Migraine"},
+            "arthritis": {"icd10": "M19.90", "snomed": "3723001", "display": "Arthritis"},
+            "obesity": {"icd10": "E66.9", "snomed": "414915002", "display": "Obesity"},
+            "allergy": {"icd10": "T78.40", "snomed": "418917006", "display": "Allergy to substance"},
+            "dementia": {"icd10": "F03", "snomed": "52448006", "display": "Dementia"},
         }
         
         self._setup_entity_patterns()

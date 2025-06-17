@@ -4,114 +4,81 @@ FHIR query construction from parsed criteria
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 class FHIRQueryBuilder:
     def __init__(self):
-        self.base_url = "[base]"
+        self.base_url = "http://hapi.fhir.org/baseR4"
     
-    def build_query(self, parsed_criteria: Dict) -> str:
-        """Build FHIR query from parsed criteria"""
-        resource = parsed_criteria.get("resource", "Patient")
+    def build_condition_lookup_query(self, parsed_criteria: Dict) -> Optional[str]:
+        """Builds a FHIR query to look up conditions and fetch patient IDs."""
+        conditions = parsed_criteria.get("conditions")
+        if not conditions:
+            return None
+
+        # Using SNOMED code for conditions as it's more specific.
+        # We'll take the first condition found for simplicity.
+        snomed_code = conditions[0]["codes"]["snomed"]
+        
+        # Limit to 1000 records as requested
+        query_params = f"code=http://snomed.info/sct|{snomed_code}&_count=1000"
+        
+        return f"GET {self.base_url}/Condition?{query_params}"
+
+    def build_patient_query(self, parsed_criteria: Dict, patient_ids: Optional[List[str]] = None) -> str:
+        """Builds a FHIR query for the Patient resource."""
         query_params = []
-        
-        if resource == "Patient":
-            query_params = self._build_patient_query(parsed_criteria)
-        elif resource == "Condition":
-            query_params = self._build_condition_query(parsed_criteria)
-        
-        # Construct final URL
-        if query_params:
-            return f"GET {self.base_url}/{resource}?{'&'.join(query_params)}"
-        else:
-            return f"GET {self.base_url}/{resource}"
-    
-    def _build_patient_query(self, criteria: Dict) -> List[str]:
-        """Build query parameters for Patient resource"""
-        query_params = []
-        
-        # Handle conditions using _has parameter
-        conditions = criteria.get("conditions", [])
-        for condition in conditions:
-            code = condition["codes"]["icd10"]
-            query_params.append(f"_has:Condition:subject:code={code}")
-        
+
+        # If we have patient IDs from the condition search, use them.
+        if patient_ids:
+            if not patient_ids: # Handle case where condition search returned no patients
+                query_params.append("_id=")
+            else:
+                query_params.append(f"_id={','.join(patient_ids)}")
+
         # Handle age criteria
-        age_criteria = criteria.get("age_criteria")
+        age_criteria = parsed_criteria.get("age_criteria")
         if age_criteria:
             birthdate_param = self._calculate_birthdate_from_age(
                 age_criteria["value"],
                 age_criteria["operator"]
             )
-            if "&birthdate=" in birthdate_param:
-                # Multiple parameters for exact age - split properly
-                parts = birthdate_param.split("&")
-                for part in parts:
-                    if part.startswith("birthdate="):
-                        query_params.append(part)
-                    else:
-                        query_params.append(f"birthdate={part}")
-            else:
-                # Single parameter for over/under age
-                query_params.append(f"birthdate={birthdate_param}")
-        
+            # Add birthdate params only if they are not empty
+            if birthdate_param:
+                 query_params.append(f"birthdate={birthdate_param}")
+
         # Handle gender
-        gender = criteria.get("gender")
+        gender = parsed_criteria.get("gender")
         if gender:
             query_params.append(f"gender={gender}")
         
         # Handle name criteria
-        name_criteria = criteria.get("name_criteria")
+        name_criteria = parsed_criteria.get("name_criteria")
         if name_criteria:
             if name_criteria["type"] == "starts_with":
                 query_params.append(f"name:starts-with={name_criteria['value']}")
             elif name_criteria["type"] == "exact":
                 query_params.append(f"name={name_criteria['value']}")
         
-        return query_params
-    
-    def _build_condition_query(self, criteria: Dict) -> List[str]:
-        """Build query parameters for Condition resource"""
-        query_params = []
-        
-        # Direct condition queries
-        conditions = criteria.get("conditions", [])
-        for condition in conditions:
-            code = condition["codes"]["icd10"]
-            query_params.append(f"code={code}")
-        
-        # If age criteria specified for conditions, need to join with patient
-        age_criteria = criteria.get("age_criteria")
-        if age_criteria:
-            birthdate_param = self._calculate_birthdate_from_age(
-                age_criteria["value"],
-                age_criteria["operator"]
-            )
-            query_params.append(f"subject.birthdate={birthdate_param}")
-        
-        # Handle gender for conditions
-        gender = criteria.get("gender")
-        if gender:
-            query_params.append(f"subject.gender={gender}")
-        
-        return query_params
+        # Construct final URL
+        if query_params:
+            return f"GET {self.base_url}/Patient?{'&'.join(query_params)}"
+        else:
+            return f"GET {self.base_url}/Patient"
     
     def _calculate_birthdate_from_age(self, age: int, operator: str) -> str:
         """Calculate birthdate parameter based on age criteria"""
         today = datetime.now()
         
         if operator == "gt":  # over X years (person is older than X)
-            # Born before this date (more than X years ago)
             target_date = today - relativedelta(years=age + 1)
-            return f"lt{target_date.strftime('%Y-%m-%d')}"
+            return f"le{target_date.strftime('%Y-%m-%d')}" # le (less than or equal to) is more inclusive for "over"
         elif operator == "lt":  # under X years (person is younger than X)
-            # Born after this date (less than X years ago)
             target_date = today - relativedelta(years=age)
-            return f"gt{target_date.strftime('%Y-%m-%d')}"
+            return f"gt{target_date.strftime('%Y-%m-%d')}" # gt (greater than)
         elif operator == "eq":  # exactly X years
-            # Born between these dates
-            start_date = today - relativedelta(years=age+1)
+            start_date = today - relativedelta(years=age + 1)
             end_date = today - relativedelta(years=age)
-            return f"gt{start_date.strftime('%Y-%m-%d')}&birthdate=lt{end_date.strftime('%Y-%m-%d')}"
+            return f"ge{start_date.strftime('%Y-%m-%d')}&birthdate=le{end_date.strftime('%Y-%m-%d')}"
         
         return "" 
