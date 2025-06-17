@@ -109,6 +109,15 @@ healthcare-query-tool/
 
 ---
 
+## ✅ Current Check-List
+
+* [ ] Containerize the backend using Docker
+* [ ] Deploy the image on Cloud Run
+* [ ] Populate HAPI FHIR server with relevant mock data
+* [ ] Implement search auto-complete for Queries
+
+---
+
 ## 🚀 Future Works
 
 • **Transformer-based NLP** – fine-tune a Clinical BERT / BioGPT model on synthetic EHR utterances for higher recall on medical entities.  
