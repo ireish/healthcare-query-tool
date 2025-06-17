@@ -12,7 +12,7 @@ import {
   Legend,
   CartesianGrid,
 } from "recharts";
-import { PatientChartsProps, PatientDisplayData } from "@/types";
+import { PatientChartsProps } from "@/types";
 import { topNWithOther } from "@/lib/utils";
 
 const COLORS = [

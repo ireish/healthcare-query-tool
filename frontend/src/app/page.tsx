@@ -73,7 +73,7 @@ export default function Home() {
                 Your Query:
               </h3>
               <p className="text-gray-700 mb-4 p-3 bg-gray-50 rounded border-l-4 border-blue-500">
-                "{currentQuery}"
+                &quot;{currentQuery}&quot;
               </p>
               
               <h3 className="text-lg font-semibold text-gray-800 mb-3">

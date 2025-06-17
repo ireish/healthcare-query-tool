@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { FHIRBundle, FHIRHumanName, FHIRAddress, FHIRPatient } from "@/types/fhir";
+import { FHIRBundle, FHIRPatient } from "@/types/fhir";
 import { PatientDisplayData, PatientTableProps } from "@/types";
 import { extractQueryUrl, processPatients } from "@/lib/fhir-utils";
 
@@ -28,55 +28,6 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
     const countries = new Set(patients.map(p => p.country).filter(c => c && c !== "-"));
     return ["All", ...Array.from(countries).sort()];
   }, [patients]);
-
-  // Helper function to calculate age from birth date
-  const calculateAge = (birthDate: string): number => {
-    if (!birthDate) return 0;
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    
-    return age;
-  };
-
-  // Helper function to extract patient name
-  const extractPatientName = (names?: FHIRHumanName[]): string => {
-    if (!names || names.length === 0) return "-";
-    const officialName = names.find(name => name.use === "official") || names[0];
-    if (officialName.text) return officialName.text;
-    const parts = [
-        ...(officialName.prefix || []),
-        ...(officialName.given || []),
-        officialName.family || '',
-    ];
-    return parts.join(" ") || "-";
-  };
-
-  // Helper function to extract address state
-  const extractState = (addresses?: FHIRAddress[]): string => {
-    if (!addresses || addresses.length === 0) return "-";
-    const homeAddress = addresses.find(addr => addr.use === "home") || addresses[0];
-    return homeAddress.state || "-";
-  };
-
-  // Helper function to extract address country
-  const extractCountry = (addresses?: FHIRAddress[]): string => {
-    if (!addresses || addresses.length === 0) return "-";
-    const homeAddress = addresses.find(addr => addr.use === "home") || addresses[0];
-    return homeAddress.country || "-";
-  };
-
-  // Helper function to determine if patient is alive
-  const isPatientAlive = (patient: FHIRPatient): string => {
-    if (patient.deceasedBoolean === true || patient.deceasedDateTime) return "No";
-    if (patient.deceasedBoolean === false) return "Yes";
-    return "-"; // Unknown/not specified
-  };
 
   // Memoized filtered patients
   const filteredPatients = useMemo(() => {
