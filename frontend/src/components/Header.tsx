@@ -9,7 +9,7 @@ export default function Header() {
         🩺
       </span>
       <h1 className="text-2xl font-bold font-[family-name:var(--font-pt-serif)] text-gray-900">
-        HEALTH QUERY AI ( FHIR - Complaint )  
+        PATIENT DATA QUERY TOOL ( FHIR - Complaint )  
       </h1>
     </header>
   );

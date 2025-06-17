@@ -1,78 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
+import { FHIRBundle, FHIRHumanName, FHIRAddress, FHIRPatient } from "@/types/fhir";
+import { PatientDisplayData, PatientTableProps } from "@/types";
+import { extractQueryUrl, processPatients } from "@/lib/fhir-utils";
 
-// Types for FHIR Patient data
-interface FHIRIdentifier {
-  system?: string;
-  value?: string;
-}
-
-interface FHIRHumanName {
-  use?: string;
-  text?: string;
-  family?: string;
-  given?: string[];
-  prefix?: string[];
-}
-
-interface FHIRAddress {
-  use?: string;
-  text?: string;
-  line?: string[];
-  city?: string;
-  district?: string;
-  state?: string;
-  postalCode?: string;
-  country?: string;
-}
-
-interface FHIRPatient {
-  resourceType: "Patient";
-  id: string;
-  identifier?: FHIRIdentifier[];
-  name?: FHIRHumanName[];
-  gender?: "male" | "female" | "other" | "unknown";
-  birthDate?: string;
-  address?: FHIRAddress[];
-  deceasedBoolean?: boolean;
-  deceasedDateTime?: string;
-}
-
-interface FHIRBundleEntry {
-  fullUrl?: string;
-  resource: FHIRPatient;
-  search?: {
-    mode: string;
-  };
-}
-
-interface FHIRBundle {
-  resourceType: "Bundle";
-  id: string;
-  type: "searchset";
-  total?: number;
-  entry?: FHIRBundleEntry[];
-  link?: Array<{
-    relation: string;
-    url: string;
-  }>;
-}
-
-// Processed patient data for display
-interface PatientDisplayData {
-  id: string;
-  name: string;
-  gender: string;
-  age: string;
-  state: string;
-  country: string;
-  isAlive: string;
-}
-
-interface PatientTableProps {
-  fhirQuery: string;
-}
+// Dynamic import to avoid SSR issues with Recharts (which relies on browser APIs)
+const PatientCharts = dynamic(() => import("./PatientCharts"), { ssr: false });
 
 export default function PatientTable({ fhirQuery }: PatientTableProps) {
   const [patients, setPatients] = useState<PatientDisplayData[]>([]);
@@ -93,12 +28,6 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
     const countries = new Set(patients.map(p => p.country).filter(c => c && c !== "-"));
     return ["All", ...Array.from(countries).sort()];
   }, [patients]);
-
-  // Helper function to extract the URL from FHIR query
-  const extractQueryUrl = (fhirQuery: string): string | null => {
-    const match = fhirQuery.match(/GET\s+(.+)$/);
-    return match ? match[1] : null;
-  };
 
   // Helper function to calculate age from birth date
   const calculateAge = (birthDate: string): number => {
@@ -149,19 +78,6 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
     return "-"; // Unknown/not specified
   };
 
-  // Process FHIR patients into display format
-  const processPatients = (fhirPatients: FHIRPatient[]): PatientDisplayData[] => {
-    return fhirPatients.map(patient => ({
-      id: patient.id || "-",
-      name: extractPatientName(patient.name),
-      gender: patient.gender ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1) : "-",
-      age: patient.birthDate ? calculateAge(patient.birthDate).toString() : "-",
-      state: extractState(patient.address),
-      country: extractCountry(patient.address),
-      isAlive: isPatientAlive(patient)
-    }));
-  };
-
   // Memoized filtered patients
   const filteredPatients = useMemo(() => {
     let result = patients;
@@ -175,7 +91,11 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
     }
     // Apply gender filter
     if (genderFilter !== "All") {
+      if (genderFilter === "Other") {
+        result = result.filter(p => p.gender !== 'Male' && p.gender !== 'Female');
+      } else {
         result = result.filter(p => p.gender === genderFilter);
+      }
     }
     // Apply country filter
     if (countryFilter !== "All") {
@@ -200,7 +120,9 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
     
     try {
       // Append _count=500 to limit fetched records
-      const fetchUrl = `${url}&_count=500`;
+      // Check if URL already has query parameters
+      const separator = url.includes('?') ? '&' : '?';
+      const fetchUrl = `${url}${separator}_count=500`;
       console.log("Fetching FHIR data from:", fetchUrl);
       
       const response = await fetch(fetchUrl, {
@@ -223,16 +145,11 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
 
       const fhirPatients = data.entry?.filter(e => e.resource?.resourceType === 'Patient').map(e => e.resource as FHIRPatient) || [];
 
-      // Validate ages and filter out unrealistic values (age <= 0 or > 100)
-      const ageValidatedPatients = fhirPatients.filter(p => {
-        if (!p.birthDate) return true; // keep if age unknown
-        const age = calculateAge(p.birthDate);
-        return age > 0 && age <= 100;
-      });
-      
-      const processed = processPatients(ageValidatedPatients);
+      // Process patients (age validation will be handled in processPatients)
+      const processed = processPatients(fhirPatients);
       setPatients(processed);
-      setRecordCount(data.total || 0);
+      // Use actual number of processed patients instead of data.total to fix display issue
+      setRecordCount(processed.length);
       setCurrentPage(1);
 
     } catch (err) {
@@ -286,27 +203,28 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
           <div>
               <label className="text-sm font-medium text-gray-700">Age Range</label>
               <div className="flex items-center space-x-2 mt-1">
-                  <input type="number" placeholder="Min" value={ageRange.min} onChange={e => setAgeRange({...ageRange, min: e.target.value})} className="p-2 border rounded-md w-full text-sm"/>
-                  <input type="number" placeholder="Max" value={ageRange.max} onChange={e => setAgeRange({...ageRange, max: e.target.value})} className="p-2 border rounded-md w-full text-sm"/>
+                  <input type="number" placeholder="Min" value={ageRange.min} onChange={e => setAgeRange({...ageRange, min: e.target.value})} className="p-2 border rounded-md w-full text-sm text-gray-900 placeholder-gray-500"/>
+                  <input type="number" placeholder="Max" value={ageRange.max} onChange={e => setAgeRange({...ageRange, max: e.target.value})} className="p-2 border rounded-md w-full text-sm text-gray-900 placeholder-gray-500"/>
               </div>
           </div>
           <div>
               <label className="text-sm font-medium text-gray-700">Gender</label>
-              <select value={genderFilter} onChange={e => setGenderFilter(e.target.value)} className="p-2 border rounded-md w-full mt-1 text-sm">
+              <select value={genderFilter} onChange={e => setGenderFilter(e.target.value)} className="p-2 border rounded-md w-full mt-1 text-sm text-gray-900">
                   <option>All</option>
                   <option>Male</option>
                   <option>Female</option>
+                  <option>Other</option>
               </select>
           </div>
           <div>
               <label className="text-sm font-medium text-gray-700">Country</label>
-              <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)} className="p-2 border rounded-md w-full mt-1 text-sm">
+              <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)} className="p-2 border rounded-md w-full mt-1 text-sm text-gray-900">
                   {availableCountries.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
           </div>
           <div>
               <label className="text-sm font-medium text-gray-700">Status</label>
-              <select value={aliveFilter} onChange={e => setAliveFilter(e.target.value)} className="p-2 border rounded-md w-full mt-1 text-sm">
+              <select value={aliveFilter} onChange={e => setAliveFilter(e.target.value)} className="p-2 border rounded-md w-full mt-1 text-sm text-gray-900">
                   <option>All</option>
                   <option>Yes</option>
                   <option>No</option>
@@ -450,6 +368,11 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
               </button>
             </div>
           </div>
+        )}
+
+        {/* Charts */}
+        {!loading && !error && filteredPatients.length > 0 && (
+          <PatientCharts patients={filteredPatients} />
         )}
       </div>
     </div>

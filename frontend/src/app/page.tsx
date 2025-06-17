@@ -3,19 +3,10 @@
 import { useState, useCallback } from "react";
 import SearchBox from "../components/SearchBox";
 import QuerySuggestions from "../components/QuerySuggestions";
-import HistoryPanel, { HistoryItem } from "../components/HistoryPanel";
 import PatientTable from "../components/PatientTable";
-
-// Updated type for the two-step FHIR query response
-interface FHIRQueryResponse {
-  condition_query?: string;
-  patient_query: string;
-  success: boolean;
-  error?: string;
-}
+import { FHIRQueryResponse } from "@/types";
 
 export default function Home() {
-  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [currentQuery, setCurrentQuery] = useState<string>("");
   const [fhirQueryCondition, setFhirQueryCondition] = useState<string | null>(null);
   const [fhirQueryPatient, setFhirQueryPatient] = useState<string>("");
@@ -54,14 +45,6 @@ export default function Home() {
       if (data.success) {
         setFhirQueryCondition(data.condition_query || null);
         setFhirQueryPatient(data.patient_query);
-
-        const newItem: HistoryItem = {
-          query,
-          result: `Condition: ${data.condition_query || 'N/A'}\nPatient: ${data.patient_query}`,
-          timestamp: new Date().toLocaleString(),
-        };
-        setHistory((prev) => [newItem, ...prev]);
-
       } else {
         setError(data.error || "Failed to generate FHIR query");
       }
@@ -70,13 +53,6 @@ export default function Home() {
       console.error("Search error:", err);
       const errorMessage = "Error: Unable to process query. Please check if the backend service is running.";
       setError(errorMessage);
-      
-      const newItem: HistoryItem = {
-        query,
-        result: errorMessage,
-        timestamp: new Date().toLocaleString(),
-      };
-      setHistory((prev) => [newItem, ...prev]);
     } finally {
       setIsLoading(false);
     }
@@ -84,9 +60,6 @@ export default function Home() {
 
   return (
     <div className="flex flex-1">
-      {/* Left history panel */}
-      <HistoryPanel items={history} />
-
       {/* Main content */}
       <main className="flex flex-col flex-1 items-center justify-start py-12 gap-6 px-4 sm:px-8">
         <SearchBox onSearch={handleSearch} />
@@ -104,7 +77,7 @@ export default function Home() {
               </p>
               
               <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                Generated FHIR Queries:
+                Generated FHIR APIs:
               </h3>
               
               {isLoading ? (
@@ -118,19 +91,19 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {fhirQueryCondition && (
+                  {fhirQueryPatient && (
                     <div>
-                      <label className="text-sm font-medium text-gray-600">1. Condition Query</label>
-                      <div className="bg-gray-900 text-green-400 p-3 mt-1 rounded-lg font-mono text-sm overflow-x-auto">
-                        <pre className="whitespace-pre-wrap break-words">
-                          {fhirQueryCondition}
+                      <label className="text-sm font-medium text-gray-600">1. Condition Resource API</label>
+                      <div className="bg-gray-900 p-3 mt-1 rounded-lg font-mono text-sm overflow-x-auto">
+                        <pre className={`whitespace-pre-wrap break-words ${fhirQueryCondition ? 'text-green-400' : 'text-gray-400'}`}>
+                          {fhirQueryCondition || "No Disease/Condition identified"}
                         </pre>
                       </div>
                     </div>
                   )}
                   {fhirQueryPatient && (
                     <div>
-                      <label className="text-sm font-medium text-gray-600">{fhirQueryCondition ? "2. Patient Query" : "Patient Query"}</label>
+                      <label className="text-sm font-medium text-gray-600">{fhirQueryCondition ? "2. Patient Resource API" : "Patient Resource API"}</label>
                       <div className="bg-gray-900 text-green-400 p-3 mt-1 rounded-lg font-mono text-sm max-h-24 overflow-y-auto">
                         <pre className="whitespace-pre-wrap break-words">
                           {fhirQueryPatient}
