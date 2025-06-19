@@ -22,7 +22,7 @@ app = FastAPI(title="Healthcare Query Tool API", version="1.0.0")
 # Enable CORS for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Frontend URL
+    allow_origins=["http://localhost:3000", "https://healthcare-query-tool.vercel.app"],  # Frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
