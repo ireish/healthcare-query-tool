@@ -65,6 +65,12 @@ export default function Home() {
       const data: FHIRQueryResponse = await res.json();
       
       if (data.success) {
+        // Handle the special case where an unsupported condition was detected
+        if (data.fhir_query === "UNSUPPORTED_CONDITION") {
+          setError("The condition you mentioned is not currently supported. Please try a different medical term.");
+          setFhirQuery(""); // Clear any previous query
+          return;
+        }
         setFhirQuery(data.fhir_query);
       } else {
         setError(data.error || "Failed to generate FHIR query");
