@@ -34,6 +34,13 @@ class HealthcareNLPService:
             if condition_query:
                 patient_ids = self._fetch_patient_ids_from_condition(condition_query)
 
+                # **CRITICAL CHECK**: If conditions were queried but no patients were found, stop here.
+                if patient_ids is not None and not patient_ids:
+                    return {
+                        "condition_query": condition_query,
+                        "patient_query": "No patient identified" # Special flag for the frontend
+                    }
+
         # Step 3: Build the final Patient query
         patient_query = self.fhir_builder.build_patient_query(parsed_criteria, patient_ids)
         
