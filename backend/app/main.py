@@ -11,8 +11,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'nlp-service'))
 
 try:
     from nlp_service import nlp_service
+    from fhir_client import execute_fhir_query
 except ImportError as e:
-    print(f"Error importing NLP service: {e}")
+    print(f"Error importing modules: {e}")
     print("Please ensure the nlp-service directory and modules are in the correct location")
     raise
 
@@ -58,20 +59,27 @@ async def health_check():
 @app.post("/api/query")
 async def process_query_endpoint(request: QueryRequest):
     """
-    API endpoint to process a natural language query and return a FHIR query.
+    API endpoint to process a natural language query, fetch FHIR data, and return it.
     """
     try:
         if not request.query or not request.query.strip():
             raise HTTPException(status_code=400, detail="Query cannot be empty.")
             
-        # Get the single FHIR query from the NLP service
+        # Step 1: Generate the FHIR query string from the NLP service
         query_result = nlp_service.process_query(request.query)
         fhir_query = query_result.get("fhir_query")
 
         if not fhir_query:
             raise HTTPException(status_code=500, detail="Failed to generate FHIR query.")
 
-        return {"success": True, "fhir_query": fhir_query}
+        # Handle unsupported conditions: return the query status and an empty data list
+        if fhir_query == "UNSUPPORTED_CONDITION":
+            return {"success": True, "fhir_query": "Query not generated for unsupported condition.", "data": "UNSUPPORTED_CONDITION"}
+
+        # Step 2: Execute the query to get the processed patient data
+        patient_data = execute_fhir_query(fhir_query)
+
+        return {"success": True, "fhir_query": fhir_query, "data": patient_data}
 
     except Exception as e:
         print(f"Error processing query: {e}")

@@ -2,18 +2,20 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { FHIRBundle, FHIRPatient } from "@/types/fhir";
-import { PatientDisplayData, PatientTableProps } from "@/types";
-import { extractQueryUrl, processPatients } from "@/lib/fhir-utils";
+import { PatientDisplayData } from "@/types";
 
-// Dynamic import to avoid SSR issues with Recharts (which relies on browser APIs)
+// Dynamically import charts to avoid SSR issues
 const PatientCharts = dynamic(() => import("./PatientCharts"), { ssr: false });
 
-export default function PatientTable({ fhirQuery }: PatientTableProps) {
-  const [patients, setPatients] = useState<PatientDisplayData[]>([]);
-  const [recordCount, setRecordCount] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+interface PatientTableProps {
+  patientData: PatientDisplayData[];
+}
+
+export default function PatientTable({ patientData }: PatientTableProps) {
+  // The 'patients' state is initialized from props and used for local filtering
+  const [patients, setPatients] = useState<PatientDisplayData[]>(patientData);
+  // The record count is based on the initial unfiltered data from props
+  const [recordCount, setRecordCount] = useState<number>(patientData.length);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const patientsPerPage = 10;
 
@@ -23,13 +25,20 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
   const [countryFilter, setCountryFilter] = useState("All");
   const [aliveFilter, setAliveFilter] = useState("All");
 
+  // When the initial patientData prop changes, reset the component's state
+  useEffect(() => {
+    setPatients(patientData);
+    setRecordCount(patientData.length);
+    setCurrentPage(1); // Reset to first page
+  }, [patientData]);
+
   // Memoized lists for filter dropdowns
   const availableCountries = useMemo(() => {
     const countries = new Set(patients.map(p => p.country).filter(c => c && c !== "-"));
     return ["All", ...Array.from(countries).sort()];
   }, [patients]);
 
-  // Memoized filtered patients
+  // Memoized filtered patients (for client-side filtering)
   const filteredPatients = useMemo(() => {
     let result = patients;
 
@@ -63,71 +72,6 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
   useEffect(() => {
     setCurrentPage(1);
   }, [ageRange, genderFilter, countryFilter, aliveFilter]);
-
-  // Fetch data from FHIR server
-  const fetchPatientData = async (url: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Append _count=500 to limit fetched records
-      // Check if URL already has query parameters
-      const separator = url.includes('?') ? '&' : '?';
-      const fetchUrl = `${url}${separator}_count=500`;
-      console.log("Fetching FHIR data from:", fetchUrl);
-      
-      const response = await fetch(fetchUrl, {
-        headers: {
-          'Accept': 'application/fhir+json',
-          'Content-Type': 'application/fhir+json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data: FHIRBundle = await response.json();
-      console.log("FHIR Response:", data);
-
-      if (data.resourceType !== "Bundle") {
-        throw new Error(`Expected Bundle, got ${data.resourceType}`);
-      }
-
-      const fhirPatients = data.entry?.filter(e => e.resource?.resourceType === 'Patient').map(e => e.resource as FHIRPatient) || [];
-
-      // Process patients (age validation will be handled in processPatients)
-      const processed = processPatients(fhirPatients);
-      setPatients(processed);
-      // Use actual number of processed patients instead of data.total to fix display issue
-      setRecordCount(processed.length);
-      setCurrentPage(1);
-
-    } catch (err) {
-      console.error("Error fetching FHIR data:", err);
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
-      setPatients([]);
-      setRecordCount(0);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Effect to fetch data when fhirQuery changes
-  useEffect(() => {
-    if (!fhirQuery || !fhirQuery.trim()) return;
-    const url = extractQueryUrl(fhirQuery);
-    if (!url) {
-        setError("Invalid FHIR query format");
-        return;
-    }
-    fetchPatientData(url);
-  }, [fhirQuery]);
-
-  // Don't render anything if no query
-  if (!fhirQuery || !fhirQuery.trim()) {
-    return null;
-  }
   
   const totalPages = Math.ceil(filteredPatients.length / patientsPerPage);
   const paginatedPatients = filteredPatients.slice((currentPage - 1) * patientsPerPage, currentPage * patientsPerPage);
@@ -141,11 +85,9 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
             <h3 className="text-lg font-semibold text-gray-800">
               Patient Data Results
             </h3>
-            {!loading && !error && (
-              <p className="text-sm text-gray-600">
-                {`Total Records: ${recordCount}`}
-              </p>
-            )}
+            <p className="text-sm text-gray-600">
+              {`Displaying ${filteredPatients.length} of ${recordCount} Records`}
+            </p>
           </div>
         </div>
 
@@ -183,39 +125,8 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
           </div>
         </div>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="flex items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-            <span className="ml-3 text-gray-600">Fetching patient data...</span>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="p-6">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
-                    Error fetching patient data
-                  </h3>
-                  <div className="mt-2 text-sm text-red-700">
-                    <p>{error}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Table */}
-        {!loading && !error && paginatedPatients.length > 0 && (
+        {paginatedPatients.length > 0 && (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -283,20 +194,20 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
         )}
 
         {/* No Data State */}
-        {!loading && !error && filteredPatients.length === 0 && (
+        {filteredPatients.length === 0 && (
           <div className="p-12 text-center">
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <h3 className="mt-2 text-sm font-medium text-gray-900">No patient data found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              {patients.length > 0 ? "No patients match the current filter criteria." : "The FHIR query returned no matching patients."}
+              {patients.length > 0 ? "No patients match the current filter criteria." : "Your query returned no matching patients."}
             </p>
           </div>
         )}
         
         {/* Pagination */}
-        {!loading && !error && totalPages > 1 && (
+        {totalPages > 1 && (
           <div className="flex items-center justify-between my-4 px-6">
             <span className="text-sm text-gray-600">
               Page {currentPage} of {totalPages}
@@ -322,7 +233,7 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
         )}
 
         {/* Charts */}
-        {!loading && !error && filteredPatients.length > 0 && (
+        {filteredPatients.length > 0 && (
           <PatientCharts patients={filteredPatients} />
         )}
       </div>

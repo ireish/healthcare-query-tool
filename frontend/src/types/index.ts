@@ -19,9 +19,10 @@ export interface PatientChartsProps {
   patients: PatientDisplayData[];
 }
 
-// API response type for the backend query
-export interface FHIRQueryResponse {
+// API response from the backend, now including the query string
+export interface APIResponse {
   fhir_query: string;
+  data: PatientDisplayData[] | "UNSUPPORTED_CONDITION";
   success: boolean;
   error?: string;
 } 
