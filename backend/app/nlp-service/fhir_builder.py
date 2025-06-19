@@ -10,31 +10,18 @@ class FHIRQueryBuilder:
     def __init__(self):
         self.base_url = "http://hapi.fhir.org/baseR4"
     
-    def build_condition_lookup_query(self, parsed_criteria: Dict) -> Optional[str]:
-        """Builds a FHIR query to look up conditions and fetch patient IDs."""
-        conditions = parsed_criteria.get("conditions")
-        if not conditions:
-            return None
-
-        # Using SNOMED code for conditions as it's more specific.
-        # We'll take the first condition found for simplicity.
-        snomed_code = conditions[0]["codes"]["snomed"]
-        
-        # Limit to 1000 records as requested
-        query_params = f"code=http://snomed.info/sct|{snomed_code}&_count=1000"
-        
-        return f"GET {self.base_url}/Condition?{query_params}"
-
-    def build_patient_query(self, parsed_criteria: Dict, patient_ids: Optional[List[str]] = None) -> str:
-        """Builds a FHIR query for the Patient resource."""
+    def build_patient_query(self, parsed_criteria: Dict) -> str:
+        """Builds a single, combined FHIR query for the Patient resource using _has for conditions."""
         query_params = []
 
-        # If we have patient IDs from the condition search, use them.
-        if patient_ids:
-            if not patient_ids: # Handle case where condition search returned no patients
-                query_params.append("_id=")
-            else:
-                query_params.append(f"_id={','.join(patient_ids)}")
+        # Handle conditions using the _has parameter
+        conditions = parsed_criteria.get("conditions")
+        if conditions:
+            # For simplicity, we'll use the first condition found.
+            # Production systems might handle multiple conditions.
+            snomed_code = conditions[0]["codes"]["snomed"]
+            condition_param = f"_has:Condition:subject:code=http://snomed.info/sct|{snomed_code}"
+            query_params.append(condition_param)
 
         # Handle age criteria
         age_criteria = parsed_criteria.get("age_criteria")
@@ -64,6 +51,7 @@ class FHIRQueryBuilder:
         if query_params:
             return f"GET {self.base_url}/Patient?{'&'.join(query_params)}"
         else:
+            # If no criteria, query for all patients (or handle as an error, depending on requirements)
             return f"GET {self.base_url}/Patient"
     
     def _calculate_birthdate_from_age(self, age: int, operator: str) -> str:

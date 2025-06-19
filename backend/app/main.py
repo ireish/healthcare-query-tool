@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 import sys
 import os
+from fastapi.responses import JSONResponse
 
 # Add the nlp-service directory to the path to import the new modular service
 sys.path.append(os.path.join(os.path.dirname(__file__), 'nlp-service'))
@@ -54,44 +55,30 @@ async def health_check():
         "version": "1.0.0"
     }
 
-@app.post("/nlp", response_model=QueryResponse)
-async def process_nlp_query(request: QueryRequest):
+@app.post("/api/query")
+async def process_query_endpoint(request: QueryRequest):
     """
-    Process natural language query and convert to FHIR query
+    API endpoint to process a natural language query and return a FHIR query.
     """
     try:
         if not request.query or not request.query.strip():
-            raise HTTPException(
-                status_code=400, 
-                detail="Query cannot be empty"
-            )
-        
-        # Process the query using NLP service
-        # Returns a dictionary with condition and patient queries
-        query_result = nlp_service.process_query(request.query.strip())
-        
-        patient_query = query_result.get("patient_query")
-        if not patient_query:
-            return QueryResponse(
-                patient_query="No FHIR patient query generated",
-                success=False,
-                error="Unable to generate FHIR patient query from the input"
-            )
-        
-        return QueryResponse(
-            condition_query=query_result.get("condition_query"),
-            patient_query=patient_query,
-            success=True
-        )
-        
-    except HTTPException:
-        # Re-raise HTTP exceptions as they are already properly formatted
-        raise
+            raise HTTPException(status_code=400, detail="Query cannot be empty.")
+            
+        # Get the single FHIR query from the NLP service
+        query_result = nlp_service.process_query(request.query)
+        fhir_query = query_result.get("fhir_query")
+
+        if not fhir_query:
+            raise HTTPException(status_code=500, detail="Failed to generate FHIR query.")
+
+        return {"success": True, "fhir_query": fhir_query}
+
     except Exception as e:
         print(f"Error processing query: {e}")
-        raise HTTPException(
+        # Return a more generic error to the user
+        return JSONResponse(
             status_code=500,
-            detail=f"Internal server error: {str(e)}"
+            content={"success": False, "error": "An internal error occurred while processing the query."}
         )
 
 if __name__ == "__main__":

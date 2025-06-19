@@ -33,8 +33,7 @@ const getRandomSuggestions = (count: number): string[] => {
 
 export default function Home() {
   const [currentQuery, setCurrentQuery] = useState<string>("");
-  const [fhirQueryCondition, setFhirQueryCondition] = useState<string | null>(null);
-  const [fhirQueryPatient, setFhirQueryPatient] = useState<string>("");
+  const [fhirQuery, setFhirQuery] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -47,8 +46,7 @@ export default function Home() {
   const handleSearch = useCallback(async (query: string) => {
     setIsLoading(true);
     setCurrentQuery(query);
-    setFhirQueryCondition(null);
-    setFhirQueryPatient("");
+    setFhirQuery("");
     setError(null);
 
     try {
@@ -67,8 +65,7 @@ export default function Home() {
       const data: FHIRQueryResponse = await res.json();
       
       if (data.success) {
-        setFhirQueryCondition(data.condition_query || null);
-        setFhirQueryPatient(data.patient_query);
+        setFhirQuery(data.fhir_query);
       } else {
         setError(data.error || "Failed to generate FHIR query");
       }
@@ -101,7 +98,7 @@ export default function Home() {
               </p>
               
               <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                Generated FHIR APIs:
+                Generated FHIR API:
               </h3>
               
               {isLoading ? (
@@ -114,36 +111,12 @@ export default function Home() {
                   {error}
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {fhirQueryPatient && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">1. Condition Resource API</label>
-                      <div className="bg-gray-900 p-3 mt-1 rounded-lg font-mono text-sm overflow-x-auto">
-                        <pre className={`whitespace-pre-wrap break-words ${fhirQueryCondition ? 'text-green-400' : 'text-gray-400'}`}>
-                          {fhirQueryCondition || "No Disease/Condition identified"}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
-                  {fhirQueryPatient && fhirQueryPatient !== "No patient identified" ? (
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">{fhirQueryCondition ? "2. Patient Resource API" : "Patient Resource API"}</label>
-                      <div className="bg-gray-900 text-green-400 p-3 mt-1 rounded-lg font-mono text-sm max-h-24 overflow-y-auto">
-                        <pre className="whitespace-pre-wrap break-words">
-                          {fhirQueryPatient}
-                        </pre>
-                      </div>
-                    </div>
-                  ) : fhirQueryPatient === "No patient identified" && (
-                     <div>
-                      <label className="text-sm font-medium text-gray-600">{fhirQueryCondition ? "2. Patient Resource API" : "Patient Resource API"}</label>
-                      <div className="bg-gray-900 text-gray-400 p-3 mt-1 rounded-lg font-mono text-sm">
-                        <pre className="whitespace-pre-wrap break-words">
-                          No patient identified for the given condition.
-                        </pre>
-                      </div>
-                    </div>
-                  )}
+                <div>
+                  <div className="bg-gray-900 text-green-400 p-3 mt-1 rounded-lg font-mono text-sm max-h-48 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap break-words">
+                      {fhirQuery}
+                    </pre>
+                  </div>
                 </div>
               )}
             </div>
@@ -151,8 +124,8 @@ export default function Home() {
         )}
         
         {/* Patient Data Table - Shows below the FHIR query */}
-        {fhirQueryPatient && fhirQueryPatient !== "No patient identified" && !isLoading && !error && (
-          <PatientTable fhirQuery={fhirQueryPatient} />
+        {fhirQuery && !isLoading && !error && (
+          <PatientTable fhirQuery={fhirQuery} />
         )}
         
       </main>

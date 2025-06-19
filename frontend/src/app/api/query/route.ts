@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     const NLP_SERVICE_URL = process.env.NLP_SERVICE_URL || "http://localhost:8000";
 
-    const upstreamRes = await fetch(`${NLP_SERVICE_URL}/nlp`, {
+    const upstreamRes = await fetch(`${NLP_SERVICE_URL}/api/query`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

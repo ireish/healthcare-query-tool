@@ -21,8 +21,7 @@ export interface PatientChartsProps {
 
 // API response type for the backend query
 export interface FHIRQueryResponse {
-  condition_query?: string;
-  patient_query: string;
+  fhir_query: string;
   success: boolean;
   error?: string;
 } 

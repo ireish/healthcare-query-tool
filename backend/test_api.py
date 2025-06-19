@@ -22,8 +22,8 @@ def test_health_endpoint():
         print("❌ Could not connect to server. Is it running on port 8000?")
         return False
 
-def test_nlp_endpoint():
-    """Test the NLP query processing endpoint"""
+def test_api_endpoint():
+    """Test the main API query processing endpoint"""
     test_queries = [
         "List all female patients with diabetes over 50 years of age",
         "Show me patients with hypertension and are male and below 18 years of age",
@@ -35,7 +35,7 @@ def test_nlp_endpoint():
         try:
             print(f"\n🔍 Testing query: {query}")
             response = requests.post(
-                "http://localhost:8000/nlp",
+                "http://localhost:8000/api/query",
                 headers={"Content-Type": "application/json"},
                 json={"query": query}
             )
@@ -66,9 +66,9 @@ def main():
         print("\n❌ Health check failed. Exiting.")
         sys.exit(1)
     
-    # Test NLP endpoint
-    if not test_nlp_endpoint():
-        print("\n❌ NLP endpoint tests failed.")
+    # Test main API endpoint
+    if not test_api_endpoint():
+        print("\n❌ API endpoint tests failed.")
         sys.exit(1)
     
     print("\n🎉 All tests passed!")
