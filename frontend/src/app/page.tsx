@@ -14,7 +14,7 @@ const allSuggestions = [
   "Show people with anxiety whose name starts with Jo",
   "Show many patients have been diagnosed with cancer?",
   "List patients with obesity over 30",
-  "Show me patients with dementia located in the US",
+  "Show me patients with dementia",
   "Find patients with a history of stroke",
   "List all patients with a recorded allergy",
   "List patients that are suffering from depression?",
