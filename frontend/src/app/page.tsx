@@ -1,10 +1,35 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import SearchBox from "../components/SearchBox";
 import QuerySuggestions from "../components/QuerySuggestions";
 import PatientTable from "../components/PatientTable";
 import { FHIRQueryResponse } from "@/types";
+
+// A larger pool of potential query suggestions based on the backend entities.
+const allSuggestions = [
+  "Show me all diabetic patients over 50",
+  "List all female patients with hypertension",
+  "Find male patients with asthma under 18",
+  "Show people with anxiety whose name starts with 'A'",
+  "How many patients have been diagnosed with cancer?",
+  "List patients with obesity and a BMI over 30",
+  "Show me patients with dementia located in the US",
+  "Find patients with a history of stroke",
+  "List all patients with a recorded allergy",
+  "How many patients are suffering from depression?",
+  "Show me arthritic patients over the age of 65",
+  "Find patients diagnosed with COPD",
+  "List all patients with a history of migraines",
+  "Show me patients who have had pneumonia",
+  "Find patients with any kind of heart disease",
+];
+
+// Function to get N random items from an array
+const getRandomSuggestions = (count: number): string[] => {
+  const shuffled = [...allSuggestions].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+};
 
 export default function Home() {
   const [currentQuery, setCurrentQuery] = useState<string>("");
@@ -12,13 +37,12 @@ export default function Home() {
   const [fhirQueryPatient, setFhirQueryPatient] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
 
-  const suggestions = [
-    "Show me all diabetic patients over 50",
-    "List all female patients with hypertension",
-    "Find male patients with asthma under 18",
-    "Show people with anxiety whose name starts with a",
-  ];
+  // On component mount, select 4 random suggestions to display.
+  useEffect(() => {
+    setSuggestions(getRandomSuggestions(4));
+  }, []);
 
   const handleSearch = useCallback(async (query: string) => {
     setIsLoading(true);
