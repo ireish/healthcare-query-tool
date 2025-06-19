@@ -115,6 +115,7 @@ healthcare-query-tool/
 * [ ] Deploy the image on Cloud Run
 * [ ] Populate HAPI FHIR server with relevant mock data
 * [ ] Implement search auto-complete for Queries
+* [ ] Add export as CSV/XLS feature to Patient data table
 
 ---
 
