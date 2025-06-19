@@ -40,6 +40,7 @@ class MedicalEntityExtractor:
             "arthritic": "arthritis",
             "obese": "obesity",
             "allergic": "allergy",
+            "migraines": "migraine",
         }
         
         self._setup_entity_patterns()
