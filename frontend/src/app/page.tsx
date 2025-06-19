@@ -122,11 +122,10 @@ export default function Home() {
           </div>
         )}
 
-        {/* Patient Data Table - Renders only when data is available */}
-        {!isLoading && !error && patientData.length > 0 && (
+        {/* Patient Data Table - Renders when we have attempted a query (even if no results) */}
+        {!isLoading && !error && fhirQuery && (
           <PatientTable patientData={patientData} />
         )}
-        
       </main>
     </div>
   );
