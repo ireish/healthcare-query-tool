@@ -303,7 +303,7 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
             </span>
             <div className="flex items-center space-x-2">
               <button
-                className={`px-3 py-1 rounded-md border text-sm ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                className={`px-3 py-1 rounded-md border border-black text-black text-sm ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
                 onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
                 disabled={currentPage === 1}
               >
@@ -311,7 +311,7 @@ export default function PatientTable({ fhirQuery }: PatientTableProps) {
               </button>
              
               <button
-                className={`px-3 py-1 rounded-md border text-sm ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                className={`px-3 py-1 rounded-md border border-black text-black text-sm ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
                 onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
               >
