@@ -71,6 +71,9 @@ def execute_fhir_query(fhir_query: str) -> List[Dict]:
     separator = '&' if '?' in base_url else '?'
     fetch_url = f"{base_url}{separator}_count=5000"
     
+    # Check if this is an age-based query by looking for birthdate parameter
+    is_age_based_query = 'birthdate=' in fhir_query
+    
     print(f"Fetching data from FHIR server: {fetch_url}")
     
     try:
@@ -92,8 +95,9 @@ def execute_fhir_query(fhir_query: str) -> List[Dict]:
         # 1. Filter out patients with age > 110
         filtered_list = [p for p in all_patients if p["_age_internal"] <= 110]
         
-        # 2. If count > 500, filter out patients with unknown age
-        if len(filtered_list) > 500:
+        # 2. For age-based queries, ALWAYS filter out unknown ages to ensure data quality
+        # For other queries, only filter unknown ages if we have more than 500 records
+        if is_age_based_query or len(filtered_list) > 500:
             filtered_list = [p for p in filtered_list if p["_age_internal"] != -1]
         
         # 3. If count is still > 500, randomly sample 500 records
