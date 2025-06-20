@@ -24,7 +24,8 @@ cd backend
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 python -m spacy download en_core_web_md
-uvicorn app.main:app --reload  # → http://localhost:8000
+cd app
+uvicorn main:app --host 0.0.0.0 --port 8000  # → http://localhost:8000
 
 # 2. Frontend
 cd ../frontend
@@ -43,27 +44,23 @@ sequenceDiagram
     participant "FastAPI"
     participant "NLP Service"
     participant "HAPI FHIR"
-    "User"->>"Next.js UI": Type free-text query
-    "Next.js UI"->>"FastAPI": POST /nlp {"query": …}
-    "FastAPI"->>"NLP Service": process_query()
-    "NLP Service"->>"HAPI FHIR": GET Condition?code=…           %% optional
-    "NLP Service"->>"HAPI FHIR": GET Patient?gender=…&birthdate=…
-    "NLP Service"-->>"FastAPI": condition_query & patient_query
-    "FastAPI"-->>"Next.js UI": JSON response
-    "Next.js UI"->>"HAPI FHIR": GET patient_query
-    "HAPI FHIR"-->>"Next.js UI": Bundle<Patient>
-    "Next.js UI"-->"User": Table + Charts + Raw API calls
+    "User"->>"Next.js UI": Types free-text query
+    "Next.js UI"->>"FastAPI": POST /api/query {"query": …}
+    "FastAPI"->>"NLP Service": Processes query, generates FHIR query string
+    "NLP Service"-->>"FastAPI": Returns FHIR query string
+    "FastAPI"->>"HAPI FHIR": GET Patient?_has:Condition...&... (Executes query)
+    "HAPI FHIR"-->>"FastAPI": Returns Bundle<Patient>
+    "FastAPI"-->>"Next.js UI": Returns processed and filtered patient data
+    "Next.js UI"-->"User": Renders Table + Charts
 ```
 
 ### Data Flow (text)
 1. **User** enters a clinical question in plain English.
-2. **Next.js** calls the `/nlp` endpoint on the FastAPI back-end.
-3. The **NLP Service** (spaCy + custom rules) extracts:
-   • medical condition(s)  
-   • demographics (age, gender, name prefix)  
-4. A Condition lookup query is built (if needed) ⟶ **HAPI FHIR** ⟶ list of patient IDs.
-5. A final Patient query is assembled with IDs + filters → returned to the UI.
-6. The **UI** shows the exact REST calls and fetches real data for display & visualisation.
+2. **Next.js** calls the `/api/query` endpoint on the FastAPI back-end.
+3. The **NLP Service** (spaCy + custom rules) extracts criteria (conditions, demographics) and builds a single, powerful FHIR Patient query.
+4. The **FastAPI** backend executes this query against the **HAPI FHIR** server, fetching up to 5000 records.
+5. The backend then **filters and samples** this data based on business rules (e.g., valid age ranges) to create a clean, relevant dataset.
+6. This final data payload is returned to the **Next.js UI**, which then renders the interactive patient table and charts.
 
 ---
 
@@ -111,8 +108,8 @@ healthcare-query-tool/
 
 ## ✅ Current Check-List
 
-* [ ] Containerize the backend using Docker
-* [ ] Deploy the image on Cloud Run
+* [x] Containerize the backend using Docker
+* [x] Deploy the image on Cloud Run
 * [ ] Populate HAPI FHIR server with relevant mock data
 * [ ] Implement search auto-complete for Queries
 * [ ] Add export as CSV/XLS feature to Patient data table
