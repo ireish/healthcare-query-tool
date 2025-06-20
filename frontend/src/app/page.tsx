@@ -20,7 +20,7 @@ const allSuggestions = [
   "List patients that are suffering from depression?",
   "Show me arthritic patients over the age of 65",
   "Find patients diagnosed with COPD",
-  "List all patients with a history of migraines",
+  "List all patients with a history of migraine",
   "Show me patients who have had pneumonia",
   "Find patients with any kind of heart disease",
 ];
