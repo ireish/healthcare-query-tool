@@ -110,6 +110,8 @@ healthcare-query-tool/
 
 * [x] Containerize the backend using Docker
 * [x] Deploy the image on Cloud Run
+* [ ] Migrate: NLP --> LLM Call for Query conversion
+* [ ] Make Condition --> SnomedCT/ICD10 Code mapping robust (use a library) 
 * [ ] Populate HAPI FHIR server with relevant mock data
 * [ ] Implement search auto-complete for Queries
 * [ ] Add export as CSV/XLS feature to Patient data table
