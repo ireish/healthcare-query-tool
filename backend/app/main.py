@@ -6,15 +6,15 @@ import sys
 import os
 from fastapi.responses import JSONResponse
 
-# Add the nlp-service directory to the path to import the new modular service
-sys.path.append(os.path.join(os.path.dirname(__file__), 'nlp-service'))
+# Add the llm-service directory to the path to import the new modular service
+sys.path.append(os.path.join(os.path.dirname(__file__), 'llm-service'))
 
 try:
     from llm_service import llm_service
     from fhir_client import execute_fhir_query
 except ImportError as e:
     print(f"Error importing modules: {e}")
-    print("Please ensure the nlp-service directory and modules are in the correct location")
+    print("Please ensure the llm-service directory and modules are in the correct location")
     raise
 
 app = FastAPI(title="Healthcare Query Tool API", version="1.0.0")
