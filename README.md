@@ -73,7 +73,7 @@ healthcare-query-tool/
 │   │   ├── main.py               # FastAPI application
 │   │   └── nlp-service/
 │   │       ├── fhir_builder.py
-│   │       └── nlp_service.py
+│   │       └── llm_service.py
 │   ├── requirements.txt
 │   └── test_api.py
 ├── frontend/

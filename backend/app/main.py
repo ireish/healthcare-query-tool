@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 sys.path.append(os.path.join(os.path.dirname(__file__), 'nlp-service'))
 
 try:
-    from nlp_service import nlp_service
+    from llm_service import llm_service
     from fhir_client import execute_fhir_query
 except ImportError as e:
     print(f"Error importing modules: {e}")
@@ -44,7 +44,7 @@ async def root():
     return {
         "message": "Healthcare Query Tool API is running",
         "status": "healthy",
-        "nlp_service": "available"
+        "llm_service": "available"
     }
 
 @app.get("/health")
@@ -52,7 +52,7 @@ async def health_check():
     """Detailed health check"""
     return {
         "status": "healthy",
-        "nlp_service_status": "available",
+        "llm_service_status": "available",
         "version": "1.0.0"
     }
 
@@ -66,7 +66,7 @@ async def process_query_endpoint(request: QueryRequest):
             raise HTTPException(status_code=400, detail="Query cannot be empty.")
             
         # Step 1: Generate the FHIR query string from the NLP service
-        query_result = nlp_service.process_query(request.query)
+        query_result = llm_service.process_query(request.query)
         fhir_query = query_result.get("fhir_query")
 
         if not fhir_query:

@@ -3,7 +3,7 @@
 Test script for the modular NLP components
 """
 
-from nlp_service import nlp_service
+from llm_service import llm_service
 
 def test_modular_components():
     """Test the modular NLP service with sample queries"""
@@ -20,7 +20,7 @@ def test_modular_components():
     for i, query in enumerate(test_queries, 1):
         print(f"\n{i}. Input Query: {query}")
         try:
-            fhir_query = nlp_service.process_query(query)
+            fhir_query = llm_service.process_query(query)
             print(f"   FHIR Query: {fhir_query}")
             print("   ✅ Success")
         except Exception as e:

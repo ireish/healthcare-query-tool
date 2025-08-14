@@ -118,4 +118,4 @@ class LLMQueryService:
 
 
 # Global instance for the service, matching the previous import contract
-nlp_service = LLMQueryService()
+llm_service = LLMQueryService()
