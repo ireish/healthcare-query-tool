@@ -6,7 +6,7 @@ Transform plain-English clinical questions into precise FHIR R4 REST calls and b
 
 ## ✨ Features
 
-• Natural-language → FHIR translation powered by **spaCy (en_core_web_md)**  
+• Natural-language → FHIR translation powered by a **Gemini LLM**  
 • Two-step "Condition ➜ Patient" query strategy to drastically shrink result sets  
 • Connects out-of-the-box to the public **HAPI FHIR R4 test server** (`https://hapi.fhir.org/baseR4`)  
 • Modern **Next.js 14** front-end with TailwindCSS & TypeScript  
@@ -23,7 +23,7 @@ Transform plain-English clinical questions into precise FHIR R4 REST calls and b
 cd backend
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-python -m spacy download en_core_web_md
+export GOOGLE_API_KEY=your_key_here   # Gemini API key
 cd app
 uvicorn main:app --host 0.0.0.0 --port 8000  # → http://localhost:8000
 
@@ -57,7 +57,7 @@ sequenceDiagram
 ### Data Flow (text)
 1. **User** enters a clinical question in plain English.
 2. **Next.js** calls the `/api/query` endpoint on the FastAPI back-end.
-3. The **NLP Service** (spaCy + custom rules) extracts criteria (conditions, demographics) and builds a single, powerful FHIR Patient query.
+3. The **LLM Service** (Gemini + lightweight prompt schema) extracts criteria (conditions, demographics) and builds a single, powerful FHIR Patient query.
 4. The **FastAPI** backend executes this query against the **HAPI FHIR** server, fetching up to 5000 records.
 5. The backend then **filters and samples** this data based on business rules (e.g., valid age ranges) to create a clean, relevant dataset.
 6. This final data payload is returned to the **Next.js UI**, which then renders the interactive patient table and charts.
@@ -72,8 +72,6 @@ healthcare-query-tool/
 │   ├── app/
 │   │   ├── main.py               # FastAPI application
 │   │   └── nlp-service/
-│   │       ├── medical_entities.py
-│   │       ├── query_parser.py
 │   │       ├── fhir_builder.py
 │   │       └── nlp_service.py
 │   ├── requirements.txt

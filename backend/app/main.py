@@ -94,7 +94,7 @@ if __name__ == "__main__":
     print("🚀 Starting Healthcare Query Tool API server...")
     print("📋 Make sure you have installed dependencies:")
     print("   pip install -r requirements.txt")
-    print("   python -m spacy download en_core_web_md")
+    print("   export GOOGLE_API_KEY=your_key_here  # Gemini key")
     print("")
     
     uvicorn.run(
