@@ -4,6 +4,7 @@ pydantic==2.5.0
 python-dateutil==2.8.2
 requests==2.31.0
 google-genai
+python-dotenv
 
 # For Gemini API
 # Set env var: export GOOGLE_API_KEY=your_key_here

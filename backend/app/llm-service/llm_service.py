@@ -67,22 +67,17 @@ class LLMQueryService:
         self.fhir_builder = FHIRQueryBuilder()
         self.api_key = os.environ.get("GEMINI_API_KEY")
         self.model_name = os.environ.get("GENAI_MODEL", "gemini-2.5-flash-lite")
-        self._model = None
+        self._client = None
+
         if _GENAI_AVAILABLE and self.api_key:
             try:
-                genai.configure(api_key=self.api_key)
-                self._model = genai.GenerativeModel(
-                    self.model_name,
-                    generation_config=types.GenerationConfig(
-                        # Disable "thinking" feature for faster, cheaper responses
-                        thinking_config=types.ThinkingConfig(thinking_budget=0)
-                    )
-                )
+                # Pass API key explicitly for robustness
+                self._client = genai.Client(api_key=self.api_key)
             except Exception:
-                self._model = None
+                self._client = None
 
     def _call_llm(self, natural_language_query: str) -> Optional[str]:
-        if not _GENAI_AVAILABLE or not self._model:
+        if not _GENAI_AVAILABLE or not self._client:
             return None
         prompt = (
             SYSTEM_INSTRUCTIONS
@@ -91,15 +86,26 @@ class LLMQueryService:
             + "\nRespond with JSON only or UNSUPPORTED_CONDITION."
         )
         try:
-            response = self._model.generate_content(prompt)
+            response = self._client.models.generate_content(
+                model=self.model_name,
+                contents=prompt
+            )
             text = (response.text or "").strip()
             return text
         except Exception:
             return None
 
     def _parse_json(self, text: str) -> Optional[Dict]:
+        # Clean the text to remove markdown formatting from the LLM response
+        cleaned_text = text.strip()
+        if cleaned_text.startswith("```json"):
+            cleaned_text = cleaned_text[7:]
+        if cleaned_text.endswith("```"):
+            cleaned_text = cleaned_text[:-3]
+        cleaned_text = cleaned_text.strip()
+
         try:
-            return json.loads(text)
+            return json.loads(cleaned_text)
         except Exception:
             return None
 
@@ -111,7 +117,6 @@ class LLMQueryService:
         """
         llm_text = self._call_llm(natural_language_query)
 
-        # If LLM unavailable or failed, gracefully return unsupported to avoid bad queries
         if not llm_text:
             return {"fhir_query": "UNSUPPORTED_CONDITION"}
 

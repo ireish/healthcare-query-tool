@@ -5,6 +5,10 @@ from typing import Optional
 import sys
 import os
 from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
+
+# Load environment variables from .env file located in the parent directory
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 # Add the llm-service directory to the path to import the new modular service
 sys.path.append(os.path.join(os.path.dirname(__file__), 'llm-service'))
@@ -65,7 +69,7 @@ async def process_query_endpoint(request: QueryRequest):
         if not request.query or not request.query.strip():
             raise HTTPException(status_code=400, detail="Query cannot be empty.")
             
-        # Step 1: Generate the FHIR query string from the NLP service
+        # Step 1: Generate the FHIR query string from the LLM service
         query_result = llm_service.process_query(request.query)
         fhir_query = query_result.get("fhir_query")
 
@@ -78,6 +82,7 @@ async def process_query_endpoint(request: QueryRequest):
 
         # Step 2: Execute the query to get the processed patient data
         patient_data = execute_fhir_query(fhir_query)
+        print(patient_data)
 
         return {"success": True, "fhir_query": fhir_query, "data": patient_data}
 
@@ -92,10 +97,6 @@ async def process_query_endpoint(request: QueryRequest):
 if __name__ == "__main__":
     import uvicorn
     print("🚀 Starting Healthcare Query Tool API server...")
-    print("📋 Make sure you have installed dependencies:")
-    print("   pip install -r requirements.txt")
-    print("   export GOOGLE_API_KEY=your_key_here  # Gemini key")
-    print("")
     
     uvicorn.run(
         "main:app",
