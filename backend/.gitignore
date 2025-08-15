@@ -11,3 +11,6 @@ nlp-service/__pycache__/
 # IDEs
 .vscode/
 .idea/
+
+# Environment variables
+.env

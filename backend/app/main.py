@@ -5,16 +5,20 @@ from typing import Optional
 import sys
 import os
 from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
 
-# Add the nlp-service directory to the path to import the new modular service
-sys.path.append(os.path.join(os.path.dirname(__file__), 'nlp-service'))
+# Load environment variables from .env file located in the parent directory
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+
+# Add the llm-service directory to the path to import the new modular service
+sys.path.append(os.path.join(os.path.dirname(__file__), 'llm-service'))
 
 try:
-    from nlp_service import nlp_service
+    from llm_service import llm_service
     from fhir_client import execute_fhir_query
 except ImportError as e:
     print(f"Error importing modules: {e}")
-    print("Please ensure the nlp-service directory and modules are in the correct location")
+    print("Please ensure the llm-service directory and modules are in the correct location")
     raise
 
 app = FastAPI(title="Healthcare Query Tool API", version="1.0.0")
@@ -44,7 +48,7 @@ async def root():
     return {
         "message": "Healthcare Query Tool API is running",
         "status": "healthy",
-        "nlp_service": "available"
+        "llm_service": "available"
     }
 
 @app.get("/health")
@@ -52,7 +56,7 @@ async def health_check():
     """Detailed health check"""
     return {
         "status": "healthy",
-        "nlp_service_status": "available",
+        "llm_service_status": "available",
         "version": "1.0.0"
     }
 
@@ -65,8 +69,8 @@ async def process_query_endpoint(request: QueryRequest):
         if not request.query or not request.query.strip():
             raise HTTPException(status_code=400, detail="Query cannot be empty.")
             
-        # Step 1: Generate the FHIR query string from the NLP service
-        query_result = nlp_service.process_query(request.query)
+        # Step 1: Generate the FHIR query string from the LLM service
+        query_result = llm_service.process_query(request.query)
         fhir_query = query_result.get("fhir_query")
 
         if not fhir_query:
@@ -92,10 +96,6 @@ async def process_query_endpoint(request: QueryRequest):
 if __name__ == "__main__":
     import uvicorn
     print("🚀 Starting Healthcare Query Tool API server...")
-    print("📋 Make sure you have installed dependencies:")
-    print("   pip install -r requirements.txt")
-    print("   python -m spacy download en_core_web_md")
-    print("")
     
     uvicorn.run(
         "main:app",

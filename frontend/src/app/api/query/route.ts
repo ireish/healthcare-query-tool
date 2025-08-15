@@ -8,9 +8,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing query" }, { status: 400 });
     }
 
-    const NLP_SERVICE_URL = process.env.NLP_SERVICE_URL || "http://localhost:8000";
+    const LLM_SERVICE_URL = process.env.LLM_SERVICE_URL || "http://localhost:8000";
 
-    const upstreamRes = await fetch(`${NLP_SERVICE_URL}/api/query`, {
+    const upstreamRes = await fetch(`${LLM_SERVICE_URL}/api/query`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
