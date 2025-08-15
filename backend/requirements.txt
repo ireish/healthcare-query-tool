@@ -3,7 +3,7 @@ uvicorn==0.24.0
 pydantic==2.5.0
 python-dateutil==2.8.2
 requests==2.31.0
-google-generativeai==0.7.2
+google-genai
 
 # For Gemini API
 # Set env var: export GOOGLE_API_KEY=your_key_here

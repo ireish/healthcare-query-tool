@@ -9,11 +9,14 @@ using the existing FHIRQueryBuilder.
 import os
 import json
 from typing import Optional, Dict
+from dotenv import load_dotenv
+load_dotenv()
 
 from fhir_builder import FHIRQueryBuilder
 
 try:
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types
     _GENAI_AVAILABLE = True
 except Exception:
     # Library not available until requirements are installed
@@ -62,13 +65,19 @@ SYSTEM_INSTRUCTIONS = (
 class LLMQueryService:
     def __init__(self):
         self.fhir_builder = FHIRQueryBuilder()
-        self.api_key = os.environ.get("GOOGLE_GENAI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-        self.model_name = os.environ.get("GENAI_MODEL", "gemini-1.5-flash")
+        self.api_key = os.environ.get("GEMINI_API_KEY")
+        self.model_name = os.environ.get("GENAI_MODEL", "gemini-2.5-flash-lite")
         self._model = None
         if _GENAI_AVAILABLE and self.api_key:
             try:
                 genai.configure(api_key=self.api_key)
-                self._model = genai.GenerativeModel(self.model_name)
+                self._model = genai.GenerativeModel(
+                    self.model_name,
+                    generation_config=types.GenerationConfig(
+                        # Disable "thinking" feature for faster, cheaper responses
+                        thinking_config=types.ThinkingConfig(thinking_budget=0)
+                    )
+                )
             except Exception:
                 self._model = None
 
