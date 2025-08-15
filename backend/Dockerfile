@@ -1,9 +1,9 @@
 # Stage 1: Build stage for dependencies
-FROM python:3.9-slim as builder
+FROM python:3.9-slim AS builder
 
 # Set environment variables to prevent generating .pyc files and to buffer output
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Create a non-root user
 RUN addgroup --system app && adduser --system --group app
