@@ -1,15 +1,44 @@
-# Use an official Python runtime as a parent image
-FROM python:3.9-slim
+# Stage 1: Build stage for dependencies
+FROM python:3.9-slim as builder
 
-# Set the working directory in the container
+# Set environment variables to prevent generating .pyc files and to buffer output
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Create a non-root user
+RUN addgroup --system app && adduser --system --group app
+
 WORKDIR /app
 
-# Copy the requirements file and install dependencies
+# Create and activate a virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
+# ---
+
+# Stage 2: Final application stage
+FROM python:3.9-slim
+
+# Create the same non-root user as in the builder stage
+RUN addgroup --system app && adduser --system --group app
+
+WORKDIR /app
+
+# Copy the virtual environment from the builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy the application code
 COPY ./app /app
+
+# Use the virtual environment
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Switch to the non-root user
+USER app
 
 # Expose the port the app runs on
 EXPOSE 8000

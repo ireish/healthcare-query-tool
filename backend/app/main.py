@@ -82,7 +82,6 @@ async def process_query_endpoint(request: QueryRequest):
 
         # Step 2: Execute the query to get the processed patient data
         patient_data = execute_fhir_query(fhir_query)
-        print(patient_data)
 
         return {"success": True, "fhir_query": fhir_query, "data": patient_data}
 

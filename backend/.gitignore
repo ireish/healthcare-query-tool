@@ -14,4 +14,3 @@ nlp-service/__pycache__/
 
 # Environment variables
 .env
-.env.example
